@@ -46,6 +46,7 @@
     position: absolute;
     top: 50%;
     left: calc(min(640px, 48%) + (100% - min(640px, 48%)) / 2);
+    z-index: 6;
     /* size: bounded by both viewport height and the available right pane */
     --max-h: 78vh;
     --max-w: calc(100% - min(640px, 48%) - 96px);
@@ -210,8 +211,8 @@
     /* typography */
     .kicker { margin-bottom: 14px; }
     h1.title { font-size: clamp(32px, 9.5vw, 48px); line-height: 1; margin-bottom: 16px; }
-    .body { font-size: 15px; line-height: 1.55; }
-    .body p { margin-bottom: 12px; }
+    .body { font-size: 16.5px; line-height: 1.58; }
+    .body p { margin-bottom: 14px; }
 
     /* workflow + tools */
     .steps { grid-template-columns: 1fr; gap: 10px; }
@@ -222,7 +223,7 @@
     .tool { padding: 5px 10px; }
 
     /* image chapters: stronger top/bottom dim so text reads */
-    .bg > img { object-position: 70% center; }
+    .bg > img { object-position: center center; }
     .veil {
       background:
         linear-gradient(180deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.4) 28%, rgba(0,0,0,.4) 72%, rgba(0,0,0,.95) 100%);
@@ -230,8 +231,13 @@
     .plate { display: none; }
 
     /* video chapters: player anchored to top, text scrolls below it */
+    /* CRITICAL on mobile: panel passes pointer events through to player below.
+       Without this the full-width panel intercepts taps and the video can't be tapped. */
+    .panel { pointer-events: none; }
+    .panel .scroll { pointer-events: auto; }
     .bg .player {
       top: 24px;
+      left: 50%;
       transform: translate(-50%, 0) scale(1.04);
     }
     .bg .player.is-active { transform: translate(-50%, 0) scale(1); }
@@ -251,6 +257,7 @@
     /* ratio toggle: docked just under the player */
     .ratio-toggle {
       top: auto; bottom: auto;
+      left: 50%;
       transform: translateX(-50%);
     }
     .stage:has(.player[data-ratio="9/16"]) .ratio-toggle { top: calc(24px + 50vh + 12px); }
@@ -258,7 +265,7 @@
     .ratio-toggle button { padding: 8px 14px; font-size: 9px; letter-spacing: 0.18em; }
 
     /* download button: bottom-right of stage, smaller */
-    .download-btn { right: 16px; bottom: 16px; padding: 10px 14px; font-size: 9px; letter-spacing: 0.18em; }
+    .download-btn { right: 16px; bottom: 16px; padding: 10px 14px; font-size: 9px; letter-spacing: 0.18em; z-index: 9; pointer-events: auto; }
     .download-btn svg { width: 11px; height: 11px; }
 
     /* footer compact */
@@ -278,7 +285,7 @@
     h1.title { font-size: clamp(30px, 11vw, 40px); margin-bottom: 14px; }
     .kicker .idx { font-size: 10px; }
     .kicker .sub { font-size: 9px; }
-    .body { font-size: 14.5px; }
+    .body { font-size: 16px; }
     footer { padding: 0 12px; gap: 10px; }
     .arrow { width: 32px; height: 28px; }
 
@@ -345,7 +352,7 @@
       sub: 'Hook + Context Flash',
       body: `
         <p><em>The Scorch</em> — an AI filmmaking breakdown.</p>
-        <p>A futuristic dystopian world built around the idea of light, transparency and refraction — a society where status is constantly observed and displayed. This is the breakdown of how it was designed, built and shot.</p>
+        <p>A futuristic dystopian world built around the idea of light, transparency and refraction, a society where status is constantly observed and displayed. This is the breakdown of how it was designed and created.</p>
       `,
       img: 'assets/00-intro.jpg'
     },
@@ -653,6 +660,36 @@
   });
   document.getElementById('prev').addEventListener('click', () => go(current - 1));
   document.getElementById('next').addEventListener('click', () => go((current + 1) % chapters.length));
+
+  // touch swipe (mobile) — horizontal swipe across the stage navigates chapters.
+  // Vertical scrolls in the text panel are unaffected (we require the gesture to be
+  // mostly horizontal). The Cloudflare iframe is cross-origin so taps/scrolls inside
+  // the video don't bubble — no risk of misfiring on the player.
+  (function attachSwipe(){
+    const stage = document.querySelector('.stage');
+    let x0 = 0, y0 = 0, t0 = 0, tracking = false;
+    stage.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      x0 = e.touches[0].clientX;
+      y0 = e.touches[0].clientY;
+      t0 = Date.now();
+      tracking = true;
+    }, { passive: true });
+    stage.addEventListener('touchend', (e) => {
+      if (!tracking) return;
+      tracking = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - x0;
+      const dy = t.clientY - y0;
+      const dt = Date.now() - t0;
+      // thresholds: distance >= 60px, horizontal dominant, gesture under 800ms
+      if (Math.abs(dx) < 60) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      if (dt > 800) return;
+      if (dx < 0) go(current + 1);
+      else go(current - 1);
+    }, { passive: true });
+  })();
 
   // initial — from hash or 0
   const start = chapters.findIndex(c => c.num === location.hash.slice(1));
