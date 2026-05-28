@@ -96,6 +96,27 @@
   .ratio-toggle button:hover { color: var(--ink); }
   .ratio-toggle button.on { color: #000; background: var(--ink); }
 
+  /* download button (bottom-right) */
+  .download-btn {
+    position: absolute; right: 28px; bottom: 22px; z-index: 7;
+    display: none; align-items: center; gap: 10px;
+    padding: 12px 18px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    color: var(--ink); text-decoration: none;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+    transition: background .2s, border-color .2s, transform .2s;
+  }
+  .download-btn.is-on { display: inline-flex; }
+  .download-btn:hover { background: var(--ink); color: #000; border-color: var(--ink); }
+  .download-btn:hover svg { stroke: #000; }
+  .download-btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+  .download-btn[aria-disabled="true"]:hover { background: rgba(0,0,0,.55); color: var(--ink); border-color: rgba(255,255,255,.18); }
+  .download-btn[aria-disabled="true"]:hover svg { stroke: var(--ink); }
+  .download-btn svg { width: 12px; height: 12px; stroke: var(--ink); stroke-width: 1.6; fill: none; transition: stroke .2s; }
+
   /* light safety gradient — your photoshopped fade does the real work */
   .veil { position: absolute; inset: 0; pointer-events: none;
     background:
@@ -134,12 +155,29 @@
   .step .t { font-size: 14px; line-height: 1.45; color: #d8d8d8; }
   .step .t b { color: var(--ink); font-weight: 500; letter-spacing: -0.005em; display: block; margin-bottom: 2px; font-size: 14px; }
 
+  /* tools row (chapter 06) */
+  .tools-row { margin-top: 28px; display: flex; align-items: flex-start; gap: 18px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .tools-label { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--mute); padding-top: 8px; flex-shrink: 0; }
+  .tools { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tool {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid rgba(255,255,255,.16);
+    color: #d8d8d8;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition: border-color .2s, color .2s;
+  }
+  .tool:hover { color: var(--ink); border-color: rgba(255,255,255,.32); }
+
   /* fade-in for panel content */
   .panel > .scroll { animation: rise .65s cubic-bezier(.2,.6,.2,1) both; }
   @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
   /* bottom-right plate caption */
-  .plate { position: absolute; right: 28px; bottom: 22px; text-align: right; z-index: 5; color: var(--dim); max-width: 280px; }
+  .plate { display: none; position: absolute; right: 28px; bottom: 22px; text-align: right; z-index: 5; color: var(--dim); max-width: 280px; }
   .plate .lbl { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink); }
   .plate .sub { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: var(--mute); letter-spacing: 0.18em; margin-top: 4px; text-transform: uppercase; }
 
@@ -176,11 +214,6 @@
     <span class="name">The Scorch</span>
     <span class="mono tag">/ AI Filmmaking Breakdown</span>
   </div>
-  <nav>
-    <a href="#">Reel</a>
-    <a href="#">Credits</a>
-    <a href="#">Contact</a>
-  </nav>
 </header>
 
 <section class="stage">
@@ -193,6 +226,11 @@
   </div>
 
   <div class="plate" id="plate"></div>
+
+  <a class="download-btn" id="downloadBtn" download target="_blank" rel="noopener" aria-disabled="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+    <span id="downloadLabel">Download</span>
+  </a>
 </section>
 
 <footer>
@@ -217,11 +255,11 @@
   const chapters = [
     {
       num: '00', title: 'The Prism',
-      kicker: 'Title card',
+      kicker: 'What',
       sub: 'Hook + Context Flash',
       body: `
         <p><em>The Scorch</em> — an AI filmmaking breakdown.</p>
-        <p>A fully futuristic dystopian world built around the idea of light, transparency and refraction — a society where status is constantly observed and displayed. This is the breakdown of how it was designed, built and shot.</p>
+        <p>A futuristic dystopian world built around the idea of light, transparency and refraction — a society where status is constantly observed and displayed. This is the breakdown of how it was designed, built and shot.</p>
       `,
       img: 'assets/00-intro.jpg'
     },
@@ -231,7 +269,7 @@
       sub: 'Chapter 01',
       body: `
         <p>I chose <em>The Scorch</em> because it was probably the most demanding of the three scripts. It is a fully futuristic dystopian world where a lot of things had to be designed from scratch. On top of that, the script presented specific technical challenges: floating status numbers above characters, a large‑scale ballroom with hundreds of people, and props that don't exist in the real world.</p>
-        <p>But honestly, I also just wanted to see what I would create. I enjoy sci‑fi and dystopian worlds, and this was an opportunity to build one entirely from my own interpretation.</p>
+        <p>But honestly, I also just wanted to see what I would create.<br />I enjoy sci‑fi and dystopian worlds, and this was an opportunity to build one entirely from my own interpretation.</p>
       `,
       img: 'assets/01-overview.jpg'
     },
@@ -252,7 +290,6 @@
       body: `
         <p>I built the Grand Ballroom around glass as the dominant material language, directly inspired by the name <em>The Prism</em>. The goal was a space where light, reflection, and transparency are not just aesthetic choices but part of the narrative itself.</p>
         <p>The defining architectural element is a massive faceted glass dome spanning the entire ceiling, functioning as a literal prism that catches and refracts light across every surface of the room. Floor‑to‑ceiling windows open the space to the city skyline a hundred stories down, while surveillance drones positioned at the corners complete the atmosphere of total visibility.</p>
-        <p>The Grand Ballroom earns its name both visually and conceptually. The environment itself is the world's core idea made physical.</p>
       `,
       img: 'assets/03-ballroom.jpg'
     },
@@ -262,7 +299,7 @@
       sub: 'Chapter 04',
       body: `
         <p>The script specifies <em>"fiber‑optic gowns"</em> for five hundred guests. I interpreted this as a high‑society futuristic dress code, designing the gowns around bold geometric light patterns that run across the entire silhouette, merging couture structure with a circuit‑like luminosity.</p>
-        <p>A strict color hierarchy separates each layer of the narrative: <em>Cassian</em> wears full gold, <em>Nova</em> a warm gold‑white with fluid luminous lines, <em>Lyra</em> the same silhouette as Nova but in cool silver, and the crowd in structured white. The contrast ensures immediate visual readability, while Lyra's mirrored design reinforces her role as Nova's rival and reflection.</p>
+        <p>A strict color hierarchy separates each layer of the narrative: <em>Cassian</em> and <em>Nova</em> wears full gold with fluid luminous lines, <em>Lyra</em> the same silhouette as Nova but in cool silver, and the crowd in structured white. The contrast ensures immediate visual readability, while Lyra's mirrored design reinforces her role as Nova's rival and reflection.</p>
       `,
       img: 'assets/04-costume.jpg'
     },
@@ -285,12 +322,25 @@
         <div class="steps">
           <div class="step"><span class="n">01</span><span class="t"><b>Script Analysis</b>Deep read to extract world logic, character arcs, and emotional tone.</span></div>
           <div class="step"><span class="n">02</span><span class="t"><b>World &amp; Character Design</b>Iterative visual system. Reference research, early explorations, final assets.</span></div>
-          <div class="step"><span class="n">03</span><span class="t"><b>Asset Generation</b>Environment, characters, costumes, choker. Status numbers refined in Photoshop.</span></div>
+          <div class="step"><span class="n">03</span><span class="t"><b>Asset Generation</b>Environment, characters, costumes, props. Status numbers refined in Photoshop.</span></div>
           <div class="step"><span class="n">04</span><span class="t"><b>Shot Design</b>Manual cinematic planning — framing, camera move, lens, emotional pacing.</span></div>
           <div class="step"><span class="n">05</span><span class="t"><b>Prompt Engineering</b>Complex structured prompts built with Claude. Shot design → visual instruction.</span></div>
           <div class="step"><span class="n">06</span><span class="t"><b>Iteration Loop</b>Multiple generation rounds. Fix inconsistencies, improve comp, hold continuity.</span></div>
           <div class="step"><span class="n">07</span><span class="t"><b>Editing</b>Assembly, sequencing and narrative pacing in CapCut.</span></div>
           <div class="step"><span class="n">08</span><span class="t"><b>Sound Design</b>Music + SFX from Artlist, mixed in CapCut. Color grade as final polish.</span></div>
+        </div>
+        <div class="tools-row">
+          <span class="tools-label">Stack</span>
+          <div class="tools">
+            <span class="tool">Higgsfield</span>
+            <span class="tool">Seedance 2.0</span>
+            <span class="tool">Nano Banana</span>
+            <span class="tool">Claude</span>
+            <span class="tool">Photoshop</span>
+            <span class="tool">CapCut</span>
+            <span class="tool">DaVinci</span>
+            <span class="tool">Artlist</span>
+          </div>
         </div>
       `,
       img: 'assets/06-workflow.jpg'
@@ -300,7 +350,7 @@
       kicker: 'Crowd & continuity',
       sub: 'Chapter 07',
       body: `
-        <p>The biggest challenge in AI filmmaking generally is consistency — getting characters to look in the right direction, stand in the right position, and behave exactly as the prompt intended. <em>Every generation is a negotiation between your vision and what the model decides to do.</em></p>
+        <p>Beyond the general challenge of AI filmmaking consistency, where getting characters to look in the right direction, stand in the right position, and behave exactly as the prompt intended is never guaranteed, the two biggest obstacles in this project were the crowd and the status numbers.</p>
         <p>In this project specifically, the crowd was the hardest element to control. Filling the ballroom with five hundred guests, all in the correct costumes, across multiple shots, required constant iteration. A single shot with a sparse or incorrectly dressed crowd breaks the illusion of the entire scene.</p>
         <p>The floating status numbers above characters presented a different kind of challenge. Maintaining consistent typography and positioning across multiple generated shots is difficult, so the numbers were refined and standardized in Photoshop as a separate step.</p>
       `,
@@ -311,28 +361,26 @@
       kicker: 'Hook + Context Flash',
       sub: 'Chapter 08',
       body: `
-        <p>The final output covers two segments of the script: the <em>Hook</em> and the <em>Context Flash</em>, resulting in approximately 50 seconds of finished video. This represents a portion of the full episode, but I believe it demonstrates enough to evaluate the creative direction, production quality, and overall approach.</p>
-        <p>The primary deliverable is in <em>9:16</em> format. During production I also generated a <em>16:9</em> version to see how the world reads in a cinematic widescreen format.</p>
-        <p>There are things I would improve. Some shots have inconsistencies in costume and status numbers, and I would add insert shots to create a more film‑like experience. But overall I am satisfied with the result. The pacing works, the performances feel natural, and the world reads as coherent. <em>With more generation budget, I believe this could become an awesome full episode.</em></p>
+        <p>The final output covers two segments of the script: the <em>Hook</em> and the <em>Context Flash</em>, resulting in approximately<br />50 seconds of finished video. This represents a portion of the full episode, but I believe it demonstrates enough to evaluate the creative direction, production quality, and overall approach.</p>
+        <p>The primary deliverable is in <em>9:16</em> format. During production<br />I also generated a <em>16:9</em> version to see how the world reads<br />in a cinematic widescreen format.</p>
+        <p>While this is not perfect and there is still a lot to improve and refine, I am satisfied with the result. The pacing works, the performances feel natural, and the world reads as coherent. <em>With more generation budget, I believe this could become an awesome full episode.</em></p>
       `,
-      img: 'https://images.unsplash.com/photo-1517604934242-8576e1bc4129?w=2400&q=80&auto=format&fit=crop',
       videos: [
-        { label: 'VERTICAL  ·  9:16', ratio: '9 / 16', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/078898768707dfd815f28012d03a7075/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2F078898768707dfd815f28012d03a7075%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600' },
-        { label: 'WIDESCREEN  ·  16:9', ratio: '16 / 9', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/afd3652d7820743484acee5c199f19f3/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2Fafd3652d7820743484acee5c199f19f3%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600' }
+        { label: 'VERTICAL  ·  9:16', ratio: '9 / 16', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/078898768707dfd815f28012d03a7075/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2F078898768707dfd815f28012d03a7075%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600', download: 'https://pub-03ba7d2ca89c43bd8422599b1995443e.r2.dev/The%20Prism%20-%209x16%20final%20%2B%20grain.mp4' },
+        { label: 'WIDESCREEN  ·  16:9', ratio: '16 / 9', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/6175b5b6156a55c0dc4562fed94c5bf7/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2F6175b5b6156a55c0dc4562fed94c5bf7%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600', download: 'https://pub-03ba7d2ca89c43bd8422599b1995443e.r2.dev/The%20Prism%20-%2016x9%20final%20%2B%20grain.mp4' }
       ]
     },
     {
-      num: '09', title: 'Bonus',
+      num: '09', title: 'Everyone but her (bonus)',
       kicker: 'Extra shot',
       sub: 'Chapter 09',
       body: `
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. <em>Ut enim ad minim veniam</em>, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, <em>eaque ipsa quae ab illo inventore veritatis</em> et quasi architecto beatae vitae dicta sunt explicabo.</p>
+        <p>I wanted to capture that specific French small‑town warmth, a cozy, inviting atmosphere where everyday moments feel special. <em>Amélie from Montmartre</em> was the reference that came to mind, and it shaped how I approached the environment.</p>
+        <p>What I am most happy with is how both characters turned out. <em>Ellie</em> is charming and likeable in a very natural way, and <em>Noah</em> has the same quality. They are both genuinely sympathetic characters, and the chemistry between them works really well. The tension of two people who clearly care for each other but haven't said it yet comes through naturally.</p>
+        <p>This is still very much in progress and there are a lot of issues to fix, but I think the foundation is quite good.</p>
       `,
-      img: 'https://images.unsplash.com/photo-1517604934242-8576e1bc4129?w=2400&q=80&auto=format&fit=crop',
       videos: [
-        { label: 'WIDESCREEN  ·  16:9', ratio: '16 / 9', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/afd3652d7820743484acee5c199f19f3/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2Fafd3652d7820743484acee5c199f19f3%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600' }
+        { label: 'WIDESCREEN  ·  16:9', ratio: '16 / 9', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/d24f6369b0719867f612ac6fee39f5fb/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2Fd24f6369b0719867f612ac6fee39f5fb%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600', download: 'https://pub-03ba7d2ca89c43bd8422599b1995443e.r2.dev/Only%20her%2016x9%20-%20in%20progress%20002.mp4' }
       ]
     },
   ];
@@ -343,6 +391,22 @@
   const bg = document.getElementById('bg');
   const footIdx = document.getElementById('footIdx');
   const footTitle = document.getElementById('footTitle');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const downloadLabel = document.getElementById('downloadLabel');
+
+  function setDownload(url, label) {
+    downloadLabel.textContent = label || 'Download';
+    if (!url) {
+      downloadBtn.removeAttribute('href');
+      downloadBtn.setAttribute('aria-disabled', 'true');
+    } else {
+      downloadBtn.href = url;
+      downloadBtn.removeAttribute('aria-disabled');
+    }
+  }
+  function showDownload(show) {
+    downloadBtn.classList.toggle('is-on', !!show);
+  }
 
   // build progress
   chapters.forEach(() => {
@@ -380,14 +444,13 @@
     const applyAspect = (idx) => {
       const v = c.videos[idx];
       wrap.style.setProperty('--ar', v.ratio);
-      // explicit height vs width: pick the smaller of (max-h * ar) and max-w
-      // CSS handles it via aspect-ratio + bounded height/width, so we just toggle a class
       wrap.dataset.ratio = v.ratio.replace(/\s+/g, '');
       iframe.src = v.src;
-      // update toggle button state
       [...toggle.children].forEach((b, k) => b.classList.toggle('on', k === idx));
       localStorage.setItem('scorch.aspect', v.ratio);
-      // recompute --player-half for the ratio-toggle position
+      // update download button to track this aspect
+      setDownload(v.download, 'Download · ' + v.label.replace(/\s+·\s+/, ' '));
+      showDownload(true);
       requestAnimationFrame(() => {
         const h = wrap.getBoundingClientRect().height;
         toggle.style.setProperty('--player-half', (h / 2) + 'px');
@@ -463,6 +526,17 @@
     footTitle.textContent = c.title;
 
     plate.innerHTML = `<div class="lbl">Plate · ${c.num}</div><div class="sub">${c.kicker}</div>`;
+
+    // download button: per-aspect for multi-video chapters is handled in applyAspect;
+    // for single-video (or no video) chapters, set here.
+    if (c.videos) {
+      showDownload(true);
+    } else if (c.video) {
+      setDownload(c.download, 'Download');
+      showDownload(true);
+    } else {
+      showDownload(false);
+    }
 
     // rebuild panel to retrigger fade-in
     const panelHost = document.querySelector('.panel');
