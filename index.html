@@ -194,15 +194,101 @@
   /* ── RESPONSIVE ───────────────────────────────────────────── */
   @media (max-width: 900px) {
     body { grid-template-rows: 56px 1fr 56px; }
-    .panel { left: 0; width: 100%; padding: 24px 24px 120px; justify-content: flex-start; padding-top: 24px; }
-    h1.title { font-size: 38px; margin-bottom: 18px; }
-    .body { font-size: 15px; }
-    .steps { grid-template-columns: 1fr; }
+
+    /* header */
+    header { padding: 0 18px; }
+    .brand .tag { display: none; }
+
+    /* panel: full width, scrollable */
+    .panel {
+      left: 0; right: 0; width: auto;
+      padding: 22px 22px 36px;
+      justify-content: flex-start;
+    }
+    .scroll { padding-right: 0; }
+
+    /* typography */
+    .kicker { margin-bottom: 14px; }
+    h1.title { font-size: clamp(32px, 9.5vw, 48px); line-height: 1; margin-bottom: 16px; }
+    .body { font-size: 15px; line-height: 1.55; }
+    .body p { margin-bottom: 12px; }
+
+    /* workflow + tools */
+    .steps { grid-template-columns: 1fr; gap: 10px; }
+    .step .t { font-size: 13px; }
+    .step .t b { font-size: 13px; }
+    .tools-row { flex-direction: column; gap: 10px; padding-top: 16px; margin-top: 18px; }
+    .tools-label { padding-top: 0; }
+    .tool { padding: 5px 10px; }
+
+    /* image chapters: stronger top/bottom dim so text reads */
+    .bg > img { object-position: 70% center; }
+    .veil {
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.4) 28%, rgba(0,0,0,.4) 72%, rgba(0,0,0,.95) 100%);
+    }
     .plate { display: none; }
-    .veil { background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,.95) 80%); }
-    .bg img { object-position: 80% center; }
-    .bg .player { left: 50%; height: auto; width: min(78vw, 360px); --max-w: 78vw; }
-    .ratio-toggle { left: 50%; top: auto; bottom: 80px; }
+
+    /* video chapters: player anchored to top, text scrolls below it */
+    .bg .player {
+      top: 24px;
+      transform: translate(-50%, 0) scale(1.04);
+    }
+    .bg .player.is-active { transform: translate(-50%, 0) scale(1); }
+    .bg .player.is-leaving { transform: translate(-50%, 0) scale(1); }
+    .bg .player[data-ratio="9/16"] {
+      width: auto; max-width: 70vw;
+      height: 50vh; max-height: 50vh;
+    }
+    .bg .player[data-ratio="16/9"] {
+      width: 88vw; max-width: 88vw;
+      height: auto; max-height: 32vh;
+    }
+    /* push text down so it starts under the player */
+    .stage:has(.player) .panel { padding-top: calc(50vh + 96px); }
+    .stage:has(.player[data-ratio="16/9"]) .panel { padding-top: calc(32vh + 100px); }
+
+    /* ratio toggle: docked just under the player */
+    .ratio-toggle {
+      top: auto; bottom: auto;
+      transform: translateX(-50%);
+    }
+    .stage:has(.player[data-ratio="9/16"]) .ratio-toggle { top: calc(24px + 50vh + 12px); }
+    .stage:has(.player[data-ratio="16/9"]) .ratio-toggle { top: calc(24px + 32vh + 12px); }
+    .ratio-toggle button { padding: 8px 14px; font-size: 9px; letter-spacing: 0.18em; }
+
+    /* download button: bottom-right of stage, smaller */
+    .download-btn { right: 16px; bottom: 16px; padding: 10px 14px; font-size: 9px; letter-spacing: 0.18em; }
+    .download-btn svg { width: 11px; height: 11px; }
+
+    /* footer compact */
+    footer { padding: 0 18px; gap: 14px; }
+    .progress { max-width: 100%; }
+    #footIdx { font-size: 10px; }
+    .footer-meta { gap: 10px; }
+    .footer-meta #footTitle { display: none; }
+    .arrow { width: 34px; height: 30px; font-size: 13px; }
+  }
+
+  /* phone */
+  @media (max-width: 600px) {
+    header { padding: 0 14px; }
+    .brand .name { font-size: 14px; }
+    .panel { padding: 18px 18px 28px; }
+    h1.title { font-size: clamp(30px, 11vw, 40px); margin-bottom: 14px; }
+    .kicker .idx { font-size: 10px; }
+    .kicker .sub { font-size: 9px; }
+    .body { font-size: 14.5px; }
+    footer { padding: 0 12px; gap: 10px; }
+    .arrow { width: 32px; height: 28px; }
+
+    /* tighter video on phone */
+    .bg .player[data-ratio="9/16"] { max-width: 64vw; height: 44vh; }
+    .bg .player[data-ratio="16/9"] { width: 92vw; max-height: 28vh; }
+    .stage:has(.player[data-ratio="9/16"]) .panel { padding-top: calc(44vh + 90px); }
+    .stage:has(.player[data-ratio="16/9"]) .panel { padding-top: calc(28vh + 92px); }
+    .stage:has(.player[data-ratio="9/16"]) .ratio-toggle { top: calc(24px + 44vh + 10px); }
+    .stage:has(.player[data-ratio="16/9"]) .ratio-toggle { top: calc(24px + 28vh + 10px); }
   }
 </style>
 </head>
