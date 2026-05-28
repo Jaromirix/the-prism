@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Scorch — AI Filmmaking Breakdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg: #000;
+    --ink: #fff;
+    --dim: #b8b8b8;
+    --mute: #6a6a6a;
+    --faint: #2a2a2a;
+    --line: rgba(255,255,255,0.08);
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: 'Geist', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+  body { height: 100vh; display: grid; grid-template-rows: 64px 1fr 56px; }
+
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; letter-spacing: 0.18em; text-transform: uppercase; font-size: 11px; }
+
+  /* ── HEADER ───────────────────────────────────────────────── */
+  header { display: flex; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 10; background: rgba(0,0,0,0.4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .mark { width: 8px; height: 8px; background: var(--ink); }
+  .brand .name { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+  .brand .tag { color: var(--mute); }
+  nav { display: flex; gap: 28px; }
+  nav a { color: var(--dim); text-decoration: none; font-size: 13px; letter-spacing: -0.005em; transition: color .2s; }
+  nav a:hover { color: var(--ink); }
+
+  /* ── STAGE (full-bleed image + overlay text) ──────────────── */
+  .stage { position: relative; overflow: hidden; background: #050505; }
+
+  .bg { position: absolute; inset: 0; }
+  .bg > img, .bg > iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transform: scale(1.04); transition: opacity 1s ease, transform 1.4s cubic-bezier(.2,.6,.2,1); }
+  .bg > img { object-fit: cover; object-position: 75% center; }
+  .bg > img.is-active { opacity: 1; transform: scale(1); }
+  .bg > img.is-leaving { opacity: 0; transition: opacity .6s ease; }
+
+  /* centered video player (chapter 08 etc.) */
+  .bg .player {
+    position: absolute;
+    top: 50%;
+    left: calc(min(640px, 48%) + (100% - min(640px, 48%)) / 2);
+    /* size: bounded by both viewport height and the available right pane */
+    --max-h: 78vh;
+    --max-w: calc(100% - min(640px, 48%) - 96px);
+    height: var(--h, var(--max-h));
+    width: var(--w, auto);
+    aspect-ratio: var(--ar, 9 / 16);
+    background: #000;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+    transition: opacity 1s ease, transform 1.4s cubic-bezier(.2,.6,.2,1);
+    pointer-events: auto;
+    overflow: hidden;
+  }
+  .bg .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .bg .player.is-active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .bg .player.is-leaving { opacity: 0; transition: opacity .6s ease; }
+
+  /* per-aspect sizing: 9:16 fills vertically, 16:9 is more compact */
+  .bg .player[data-ratio="9/16"] { height: 78vh; width: auto; max-width: calc(100% - min(640px, 48%) - 96px); }
+  .bg .player[data-ratio="16/9"] { height: auto; width: min(54vw, calc(100% - min(640px, 48%) - 120px)); max-height: 60vh; }
+
+  /* aspect toggle pills (sits just under the player) */
+  .ratio-toggle {
+    position: absolute;
+    top: calc(50% + var(--player-half, 39vh) + 24px);
+    left: calc(min(640px, 48%) + (100% - min(640px, 48%)) / 2);
+    transform: translateX(-50%);
+    z-index: 6;
+    display: flex;
+    gap: 0;
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity .6s ease .2s;
+  }
+  .ratio-toggle.is-active { opacity: 1; }
+  .ratio-toggle button {
+    background: transparent; border: 0; padding: 10px 18px;
+    color: var(--dim); cursor: pointer;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.22em;
+    transition: color .2s, background .2s;
+  }
+  .ratio-toggle button + button { border-left: 1px solid rgba(255,255,255,.12); }
+  .ratio-toggle button:hover { color: var(--ink); }
+  .ratio-toggle button.on { color: #000; background: var(--ink); }
+
+  /* light safety gradient — your photoshopped fade does the real work */
+  .veil { position: absolute; inset: 0; pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.55) 22%, rgba(0,0,0,0.15) 42%, rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0) 78%, rgba(0,0,0,0.35) 100%);
+  }
+  .grain { position: absolute; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  }
+
+  /* ── TEXT PANEL ───────────────────────────────────────────── */
+  .panel { position: absolute; top: 0; bottom: 0; left: 0; width: min(640px, 48%); z-index: 5;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 48px 56px 48px 56px; overflow: hidden;
+  }
+  .scroll { max-height: 100%; overflow-y: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+  .scroll::-webkit-scrollbar { width: 6px; }
+  .scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+  .kicker { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .kicker .idx { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.3em; color: var(--ink); }
+  .kicker .rule { width: 36px; height: 1px; background: var(--ink); }
+  .kicker .sub { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); }
+
+  h1.title { font-size: clamp(44px, 5.2vw, 72px); line-height: .95; letter-spacing: -0.035em; margin: 0 0 28px; font-weight: 500; text-wrap: balance; }
+
+  .body { font-size: clamp(16px, 1.05vw, 19px); line-height: 1.62; color: #d8d8d8; letter-spacing: -0.003em; }
+  .body p { margin: 0 0 16px; }
+  .body p:last-child { margin-bottom: 0; }
+  .body em { font-style: normal; color: var(--ink); }
+
+  /* numbered workflow grid */
+  .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; margin-top: 4px; }
+  .step { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+  .step .n { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--mute); padding-top: 2px; }
+  .step .t { font-size: 14px; line-height: 1.45; color: #d8d8d8; }
+  .step .t b { color: var(--ink); font-weight: 500; letter-spacing: -0.005em; display: block; margin-bottom: 2px; font-size: 14px; }
+
+  /* fade-in for panel content */
+  .panel > .scroll { animation: rise .65s cubic-bezier(.2,.6,.2,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* bottom-right plate caption */
+  .plate { position: absolute; right: 28px; bottom: 22px; text-align: right; z-index: 5; color: var(--dim); max-width: 280px; }
+  .plate .lbl { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink); }
+  .plate .sub { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: var(--mute); letter-spacing: 0.18em; margin-top: 4px; text-transform: uppercase; }
+
+  /* ── FOOTER ───────────────────────────────────────────────── */
+  footer { display: flex; align-items: center; gap: 22px; padding: 0 32px; border-top: 1px solid var(--line); position: relative; z-index: 10; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .progress { flex: 1; display: flex; gap: 4px; max-width: 60%; }
+  .progress .seg { flex: 1; height: 2px; background: var(--faint); transition: background .35s; }
+  .progress .seg.on { background: var(--ink); }
+  .footer-meta { display: flex; align-items: center; gap: 20px; margin-left: auto; }
+  .arrows { display: flex; gap: 6px; }
+  .arrow { width: 36px; height: 32px; border: 1px solid var(--line); background: transparent; color: var(--dim); font-size: 14px; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; }
+  .arrow:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ── RESPONSIVE ───────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    body { grid-template-rows: 56px 1fr 56px; }
+    .panel { left: 0; width: 100%; padding: 24px 24px 120px; justify-content: flex-start; padding-top: 24px; }
+    h1.title { font-size: 38px; margin-bottom: 18px; }
+    .body { font-size: 15px; }
+    .steps { grid-template-columns: 1fr; }
+    .plate { display: none; }
+    .veil { background: linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,.95) 80%); }
+    .bg img { object-position: 80% center; }
+    .bg .player { left: 50%; height: auto; width: min(78vw, 360px); --max-w: 78vw; }
+    .ratio-toggle { left: 50%; top: auto; bottom: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="mark"></span>
+    <span class="name">The Scorch</span>
+    <span class="mono tag">/ AI Filmmaking Breakdown</span>
+  </div>
+  <nav>
+    <a href="#">Reel</a>
+    <a href="#">Credits</a>
+    <a href="#">Contact</a>
+  </nav>
+</header>
+
+<section class="stage">
+  <div class="bg" id="bg"></div>
+  <div class="veil"></div>
+  <div class="grain"></div>
+
+  <div class="panel">
+    <div class="scroll" id="panel"></div>
+  </div>
+
+  <div class="plate" id="plate"></div>
+</section>
+
+<footer>
+  <span class="mono" id="footIdx" style="color: var(--ink)">00 / 09</span>
+  <div class="progress" id="progress"></div>
+  <div class="footer-meta">
+    <span class="mono" id="footTitle" style="color: var(--dim)"></span>
+    <div class="arrows">
+      <button class="arrow" id="prev" aria-label="Previous">←</button>
+      <button class="arrow" id="next" aria-label="Next">→</button>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ────────────────────────────────────────────────────────────
+  // CHAPTERS — full breakdown copy. To swap an image, replace
+  // the `img` URL with your photoshopped file (e.g. "assets/01.jpg").
+  // The right-side cinematic image is expected to already fade
+  // to black on its left edge (done in Photoshop).
+  // ────────────────────────────────────────────────────────────
+  const chapters = [
+    {
+      num: '00', title: 'The Prism',
+      kicker: 'Title card',
+      sub: 'Hook + Context Flash',
+      body: `
+        <p><em>The Scorch</em> — an AI filmmaking breakdown.</p>
+        <p>A fully futuristic dystopian world built around the idea of light, transparency and refraction — a society where status is constantly observed and displayed. This is the breakdown of how it was designed, built and shot.</p>
+      `,
+      img: 'assets/00-intro.jpg'
+    },
+    {
+      num: '01', title: 'Project Overview',
+      kicker: 'Why The Scorch',
+      sub: 'Chapter 01',
+      body: `
+        <p>I chose <em>The Scorch</em> because it was probably the most demanding of the three scripts. It is a fully futuristic dystopian world where a lot of things had to be designed from scratch. On top of that, the script presented specific technical challenges: floating status numbers above characters, a large‑scale ballroom with hundreds of people, and props that don't exist in the real world.</p>
+        <p>But honestly, I also just wanted to see what I would create. I enjoy sci‑fi and dystopian worlds, and this was an opportunity to build one entirely from my own interpretation.</p>
+      `,
+      img: 'assets/01-overview.jpg'
+    },
+    {
+      num: '02', title: 'Worldbuilding Approach',
+      kicker: 'The Prism',
+      sub: 'Chapter 02',
+      body: `
+        <p>The name <em>The Prism</em> became the foundation for every visual decision. I built the entire aesthetic around the idea of light, transparency, and refraction as metaphors for a society where status is constantly observed and displayed.</p>
+        <p>From there, the key design pillars came naturally: <em>glass‑dominant architecture, light as a representation of hierarchy, and fashion as a visible status signal.</em></p>
+      `,
+      img: 'assets/02-worldbuilding.jpg'
+    },
+    {
+      num: '03', title: 'The Grand Ballroom',
+      kicker: 'Key environment',
+      sub: 'Chapter 03',
+      body: `
+        <p>I built the Grand Ballroom around glass as the dominant material language, directly inspired by the name <em>The Prism</em>. The goal was a space where light, reflection, and transparency are not just aesthetic choices but part of the narrative itself.</p>
+        <p>The defining architectural element is a massive faceted glass dome spanning the entire ceiling, functioning as a literal prism that catches and refracts light across every surface of the room. Floor‑to‑ceiling windows open the space to the city skyline a hundred stories down, while surveillance drones positioned at the corners complete the atmosphere of total visibility.</p>
+        <p>The Grand Ballroom earns its name both visually and conceptually. The environment itself is the world's core idea made physical.</p>
+      `,
+      img: 'assets/03-ballroom.jpg'
+    },
+    {
+      num: '04', title: 'Costume Design',
+      kicker: 'Fiber‑optic gowns',
+      sub: 'Chapter 04',
+      body: `
+        <p>The script specifies <em>"fiber‑optic gowns"</em> for five hundred guests. I interpreted this as a high‑society futuristic dress code, designing the gowns around bold geometric light patterns that run across the entire silhouette, merging couture structure with a circuit‑like luminosity.</p>
+        <p>A strict color hierarchy separates each layer of the narrative: <em>Cassian</em> wears full gold, <em>Nova</em> a warm gold‑white with fluid luminous lines, <em>Lyra</em> the same silhouette as Nova but in cool silver, and the crowd in structured white. The contrast ensures immediate visual readability, while Lyra's mirrored design reinforces her role as Nova's rival and reflection.</p>
+      `,
+      img: 'assets/04-costume.jpg'
+    },
+    {
+      num: '05', title: 'The Choker System',
+      kicker: 'Key prop',
+      sub: 'Chapter 05',
+      body: `
+        <p>In its default state, the choker is designed to read as luxury jewelry, with overlapping polished plates and a subtle gold illumination, elegant enough to function as a status symbol and a fashion accessory simultaneously.</p>
+        <p>For the transformation, I moved away from the script's <em>"thorns of black metal"</em> toward a more mechanically grounded approach: the existing plates rotate inward, their edges turning into sharp segments that press into the skin. Literal inward‑facing thorns would cause fatal injury rather than punishment, and I also wanted the transformation to feel physically believable. The mechanism needed to come from within the object itself, not appear from nowhere. The design remains visually coherent with the elegant form that precedes it.</p>
+      `,
+      img: 'assets/05-choker.jpg'
+    },
+    {
+      num: '06', title: 'Production Workflow',
+      kicker: 'An eight‑step system',
+      sub: 'Chapter 06',
+      body: `
+        <p style="margin-bottom:22px">Each step is a separate discipline. The pipeline runs script → world → assets → shots → prompts → iteration → edit → sound.</p>
+        <div class="steps">
+          <div class="step"><span class="n">01</span><span class="t"><b>Script Analysis</b>Deep read to extract world logic, character arcs, and emotional tone.</span></div>
+          <div class="step"><span class="n">02</span><span class="t"><b>World &amp; Character Design</b>Iterative visual system. Reference research, early explorations, final assets.</span></div>
+          <div class="step"><span class="n">03</span><span class="t"><b>Asset Generation</b>Environment, characters, costumes, choker. Status numbers refined in Photoshop.</span></div>
+          <div class="step"><span class="n">04</span><span class="t"><b>Shot Design</b>Manual cinematic planning — framing, camera move, lens, emotional pacing.</span></div>
+          <div class="step"><span class="n">05</span><span class="t"><b>Prompt Engineering</b>Complex structured prompts built with Claude. Shot design → visual instruction.</span></div>
+          <div class="step"><span class="n">06</span><span class="t"><b>Iteration Loop</b>Multiple generation rounds. Fix inconsistencies, improve comp, hold continuity.</span></div>
+          <div class="step"><span class="n">07</span><span class="t"><b>Editing</b>Assembly, sequencing and narrative pacing in CapCut.</span></div>
+          <div class="step"><span class="n">08</span><span class="t"><b>Sound Design</b>Music + SFX from Artlist, mixed in CapCut. Color grade as final polish.</span></div>
+        </div>
+      `,
+      img: 'assets/06-workflow.jpg'
+    },
+    {
+      num: '07', title: 'Challenges',
+      kicker: 'Crowd & continuity',
+      sub: 'Chapter 07',
+      body: `
+        <p>The biggest challenge in AI filmmaking generally is consistency — getting characters to look in the right direction, stand in the right position, and behave exactly as the prompt intended. <em>Every generation is a negotiation between your vision and what the model decides to do.</em></p>
+        <p>In this project specifically, the crowd was the hardest element to control. Filling the ballroom with five hundred guests, all in the correct costumes, across multiple shots, required constant iteration. A single shot with a sparse or incorrectly dressed crowd breaks the illusion of the entire scene.</p>
+        <p>The floating status numbers above characters presented a different kind of challenge. Maintaining consistent typography and positioning across multiple generated shots is difficult, so the numbers were refined and standardized in Photoshop as a separate step.</p>
+      `,
+      img: 'assets/07-challenges.jpg'
+    },
+    {
+      num: '08', title: 'Output',
+      kicker: 'Hook + Context Flash',
+      sub: 'Chapter 08',
+      body: `
+        <p>The final output covers two segments of the script: the <em>Hook</em> and the <em>Context Flash</em>, resulting in approximately 50 seconds of finished video. This represents a portion of the full episode, but I believe it demonstrates enough to evaluate the creative direction, production quality, and overall approach.</p>
+        <p>The primary deliverable is in <em>9:16</em> format. During production I also generated a <em>16:9</em> version to see how the world reads in a cinematic widescreen format.</p>
+        <p>There are things I would improve. Some shots have inconsistencies in costume and status numbers, and I would add insert shots to create a more film‑like experience. But overall I am satisfied with the result. The pacing works, the performances feel natural, and the world reads as coherent. <em>With more generation budget, I believe this could become an awesome full episode.</em></p>
+      `,
+      img: 'https://images.unsplash.com/photo-1517604934242-8576e1bc4129?w=2400&q=80&auto=format&fit=crop',
+      videos: [
+        { label: 'VERTICAL  ·  9:16', ratio: '9 / 16', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/078898768707dfd815f28012d03a7075/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2F078898768707dfd815f28012d03a7075%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600' },
+        { label: 'WIDESCREEN  ·  16:9', ratio: '16 / 9', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/afd3652d7820743484acee5c199f19f3/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2Fafd3652d7820743484acee5c199f19f3%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600' }
+      ]
+    },
+    {
+      num: '09', title: 'Bonus',
+      kicker: 'Extra shot',
+      sub: 'Chapter 09',
+      body: `
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. <em>Ut enim ad minim veniam</em>, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, <em>eaque ipsa quae ab illo inventore veritatis</em> et quasi architecto beatae vitae dicta sunt explicabo.</p>
+      `,
+      img: 'https://images.unsplash.com/photo-1517604934242-8576e1bc4129?w=2400&q=80&auto=format&fit=crop',
+      videos: [
+        { label: 'WIDESCREEN  ·  16:9', ratio: '16 / 9', src: 'https://customer-8x1l6wt2zqyyvxje.cloudflarestream.com/afd3652d7820743484acee5c199f19f3/iframe?poster=https%3A%2F%2Fcustomer-8x1l6wt2zqyyvxje.cloudflarestream.com%2Fafd3652d7820743484acee5c199f19f3%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600' }
+      ]
+    },
+  ];
+
+  const panel = document.getElementById('panel');
+  const plate = document.getElementById('plate');
+  const progress = document.getElementById('progress');
+  const bg = document.getElementById('bg');
+  const footIdx = document.getElementById('footIdx');
+  const footTitle = document.getElementById('footTitle');
+
+  // build progress
+  chapters.forEach(() => {
+    const s = document.createElement('div');
+    s.className = 'seg';
+    progress.appendChild(s);
+  });
+
+  // image preload + crossfade
+  const imgs = [];
+  const removalTimers = new WeakMap();
+  let current = -1;
+
+  function buildPlayer(c, i) {
+    const wrap = document.createElement('div');
+    wrap.className = 'player';
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('allow', 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen');
+    iframe.setAttribute('allowfullscreen', '');
+    iframe.loading = 'lazy';
+    wrap.appendChild(iframe);
+
+    // single video case (legacy)
+    if (c.video && !c.videos) {
+      iframe.src = c.video;
+      return { main: wrap, extras: [] };
+    }
+
+    // multi-aspect: build a toggle
+    const stored = localStorage.getItem('scorch.aspect') || c.videos[0].ratio;
+    let activeIdx = c.videos.findIndex(v => v.ratio === stored);
+    if (activeIdx < 0) activeIdx = 0;
+
+    const applyAspect = (idx) => {
+      const v = c.videos[idx];
+      wrap.style.setProperty('--ar', v.ratio);
+      // explicit height vs width: pick the smaller of (max-h * ar) and max-w
+      // CSS handles it via aspect-ratio + bounded height/width, so we just toggle a class
+      wrap.dataset.ratio = v.ratio.replace(/\s+/g, '');
+      iframe.src = v.src;
+      // update toggle button state
+      [...toggle.children].forEach((b, k) => b.classList.toggle('on', k === idx));
+      localStorage.setItem('scorch.aspect', v.ratio);
+      // recompute --player-half for the ratio-toggle position
+      requestAnimationFrame(() => {
+        const h = wrap.getBoundingClientRect().height;
+        toggle.style.setProperty('--player-half', (h / 2) + 'px');
+      });
+    };
+
+    const toggle = document.createElement('div');
+    toggle.className = 'ratio-toggle';
+    c.videos.forEach((v, idx) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = v.label;
+      b.addEventListener('click', () => applyAspect(idx));
+      toggle.appendChild(b);
+    });
+
+    applyAspect(activeIdx);
+    return { main: wrap, extras: [toggle] };
+  }
+
+  function setImage(i) {
+    // mark all currently-attached media as leaving
+    [...bg.querySelectorAll('.is-active')].forEach(prev => {
+      prev.classList.remove('is-active');
+      prev.classList.add('is-leaving');
+      clearTimeout(removalTimers.get(prev));
+      const t = setTimeout(() => {
+        if (!prev.classList.contains('is-active')) prev.remove();
+      }, 900);
+      removalTimers.set(prev, t);
+    });
+
+    let entry = imgs[i];
+    if (!entry) {
+      const c = chapters[i];
+      if (c.video || c.videos) {
+        entry = buildPlayer(c, i);
+      } else {
+        const im = document.createElement('img');
+        im.src = c.img;
+        im.alt = '';
+        im.loading = i === 0 ? 'eager' : 'lazy';
+        im.decoding = 'async';
+        entry = { main: im, extras: [] };
+      }
+      imgs[i] = entry;
+    }
+
+    const all = [entry.main, ...entry.extras];
+    all.forEach(el => {
+      clearTimeout(removalTimers.get(el));
+      el.classList.remove('is-leaving');
+      if (!el.isConnected) bg.appendChild(el);
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      all.forEach(el => el.classList.add('is-active'));
+      // sync toggle position to player size on first show
+      if (entry.extras[0]) {
+        const h = entry.main.getBoundingClientRect().height;
+        entry.extras[0].style.setProperty('--player-half', (h / 2) + 'px');
+      }
+    }));
+  }
+
+  function go(i) {
+    if (i < 0 || i >= chapters.length || i === current) return;
+    current = i;
+    const c = chapters[i];
+
+    [...progress.children].forEach((el, k) => el.classList.toggle('on', k <= i));
+
+    footIdx.textContent = `${c.num} / ${String(chapters.length - 1).padStart(2,'0')}`;
+    footTitle.textContent = c.title;
+
+    plate.innerHTML = `<div class="lbl">Plate · ${c.num}</div><div class="sub">${c.kicker}</div>`;
+
+    // rebuild panel to retrigger fade-in
+    const panelHost = document.querySelector('.panel');
+    const existing = panelHost.querySelector('.scroll');
+    if (existing) existing.remove();
+    const wrap = document.createElement('div');
+    wrap.className = 'scroll';
+    wrap.id = 'panel';
+    wrap.innerHTML = `
+      <div class="kicker">
+        <span class="idx">${c.num} / ${String(chapters.length - 1).padStart(2,'0')}</span>
+        <span class="rule"></span>
+        <span class="sub">${c.sub}</span>
+      </div>
+      <h1 class="title">${c.title}</h1>
+      <div class="body">${c.body}</div>
+    `;
+    panelHost.appendChild(wrap);
+
+    setImage(i);
+    history.replaceState(null, '', `#${c.num}`);
+  }
+
+  // nav
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); go(current + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp'   || e.key === 'PageUp')   { e.preventDefault(); go(current - 1); }
+  });
+  document.getElementById('prev').addEventListener('click', () => go(current - 1));
+  document.getElementById('next').addEventListener('click', () => go((current + 1) % chapters.length));
+
+  // initial — from hash or 0
+  const start = chapters.findIndex(c => c.num === location.hash.slice(1));
+  go(start >= 0 ? start : 0);
+</script>
+
+</body>
+</html>
